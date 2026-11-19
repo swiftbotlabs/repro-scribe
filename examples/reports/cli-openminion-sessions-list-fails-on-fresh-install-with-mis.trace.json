@@ -1,0 +1,126 @@
+{
+ "seconds": 38.5,
+ "tool_calls": [
+  {
+   "tool": "capture_environment",
+   "args": {}
+  },
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion sessions list"
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "config file not found agents.json sessions list"
+   }
+  }
+ ],
+ "checks": [
+  "ok"
+ ],
+ "session_id": "rs-openminion-sessions-list-writer",
+ "calls": [
+  {
+   "tool": "capture_environment",
+   "args": {},
+   "result": {
+    "python": "3.14.4",
+    "platform": "Linux-7.0.0-43-generic-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "packages": {
+     "openminion": "0.1.23",
+     "pydantic": "2.14.3",
+     "httpx": "0.28.1"
+    }
+   }
+  },
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion sessions list"
+   },
+   "result": {
+    "command": "openminion sessions list",
+    "exit_code": 1,
+    "seconds": 1.39,
+    "stdout_tail": "",
+    "stderr_tail": "openminion sessions: startup error \u2014 config file not found: /tmp/repro-telrjwr2/home/.openminion/agents.json\n"
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "config file not found agents.json sessions list"
+   },
+   "result": {
+    "query": "config file not found agents.json sessions list",
+    "total": 10,
+    "items": [
+     {
+      "number": 573,
+      "title": "cli: first-run missing-config error gives no next step and uses two different exit codes",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/573",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:config",
+       "status:contributor-in-progress"
+      ],
+      "created_at": "2026-11-03"
+     },
+     {
+      "number": 618,
+      "title": "daemon: session/state databases and logs are created world-readable (0644)",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/618",
+      "labels": [
+       "bug",
+       "status:maintainer-investigation"
+      ],
+      "created_at": "2026-11-04"
+     },
+     {
+      "number": 591,
+      "title": "cli: `status` and `service` resolve a different config file than every other command",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/591",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:config"
+      ],
+      "created_at": "2026-11-04"
+     },
+     {
+      "number": 437,
+      "title": "`APIRuntime` does not start with `storage.backend: postgres`: `runtime record_store does not expose sqlite connection` (`api/core/bootstrap.py:126`)",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/437",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:sessions"
+      ],
+      "created_at": "2026-10-26"
+     },
+     {
+      "number": 420,
+      "title": "Memory consolidation cron runs fail with TypeError when a capture intent is pending: the recovery calls the agent's keyword-only extractor positionally",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/420",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:scheduling"
+      ],
+      "created_at": "2026-10-25"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,207 @@
+{
+ "seconds": 85.8,
+ "tool_calls": [
+  {
+   "tool": "capture_environment",
+   "args": {}
+  },
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion run hello"
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "openminion run hello fresh install"
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "config file not found agents.json"
+   }
+  }
+ ],
+ "checks": [
+  "ok"
+ ],
+ "session_id": "rs-openminion-run-hello-writer",
+ "calls": [
+  {
+   "tool": "capture_environment",
+   "args": {},
+   "result": {
+    "python": "3.14.4",
+    "platform": "Linux-7.0.0-43-generic-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "packages": {
+     "openminion": "0.1.23",
+     "pydantic": "2.14.3",
+     "httpx": "0.28.1"
+    }
+   }
+  },
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion run hello"
+   },
+   "result": {
+    "command": "openminion run hello",
+    "exit_code": 2,
+    "seconds": 1.36,
+    "stdout_tail": "",
+    "stderr_tail": "openminion: config file not found: /tmp/repro-saglpnrs/home/.openminion/agents.json\n"
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "openminion run hello fresh install"
+   },
+   "result": {
+    "query": "openminion run hello fresh install",
+    "total": 19,
+    "items": [
+     {
+      "number": 564,
+      "title": "Migration v14 fails on SQLite < 3.33 (UPDATE ... FROM), blocking first run on Ubuntu 20.04",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/564",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:sessions",
+       "status:awaiting-release"
+      ],
+      "created_at": "2026-11-02"
+     },
+     {
+      "number": 745,
+      "title": "README `Agent` + `@tool` snippet stops at a policy confirmation: its bare `lookup_order` is the #464 pattern, and the `@tool` risk options are undocumented",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/745",
+      "labels": [
+       "documentation",
+       "area:sdk",
+       "area:tools",
+       "area:approvals",
+       "status:awaiting-release"
+      ],
+      "created_at": "2026-11-13"
+     },
+     {
+      "number": 602,
+      "title": "brain: truncated or safety-filtered provider responses are reported as a normal stop",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/602",
+      "labels": [
+       "bug",
+       "status:awaiting-release"
+      ],
+      "created_at": "2026-11-04"
+     },
+     {
+      "number": 476,
+      "title": "Two Handoffs to same-named targets collide and fail at run time with 'profile_id values must be unique'",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/476",
+      "labels": [
+       "enhancement",
+       "area:sdk"
+      ],
+      "created_at": "2026-10-28"
+     },
+     {
+      "number": 325,
+      "title": "[0.1.8] `Agent(agent_id=\"b\")` silently runs on agent \"a\"'s provider when the session was first used by \"a\"",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/325",
+      "labels": [
+       "bug",
+       "area:sdk",
+       "area:providers",
+       "area:sessions",
+       "fixed-in:0.1.10"
+      ],
+      "created_at": "2026-10-21"
+     }
+    ]
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "config file not found agents.json"
+   },
+   "result": {
+    "query": "config file not found agents.json",
+    "total": 23,
+    "items": [
+     {
+      "number": 573,
+      "title": "cli: first-run missing-config error gives no next step and uses two different exit codes",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/573",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:config",
+       "status:contributor-in-progress"
+      ],
+      "created_at": "2026-11-03"
+     },
+     {
+      "number": 767,
+      "title": "cli: add `config diff` so an import can be previewed before it overwrites the config",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/767",
+      "labels": [
+       "enhancement",
+       "area:config",
+       "status:awaiting-release"
+      ],
+      "created_at": "2026-11-15"
+     },
+     {
+      "number": 751,
+      "title": "cli: `openminion time <subcommand>` fails with tool_not_found on the default daemon route",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/751",
+      "labels": [
+       "bug",
+       "area:tools",
+       "status:contributor-in-progress"
+      ],
+      "created_at": "2026-11-14"
+     },
+     {
+      "number": 618,
+      "title": "daemon: session/state databases and logs are created world-readable (0644)",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/618",
+      "labels": [
+       "bug",
+       "status:maintainer-investigation"
+      ],
+      "created_at": "2026-11-04"
+     },
+     {
+      "number": 717,
+      "title": "Provider retry ignores Retry-After on 429, so a per-minute rate limit always ends the turn",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/717",
+      "labels": [
+       "bug",
+       "area:providers",
+       "status:awaiting-release"
+      ],
+      "created_at": "2026-11-10"
+     }
+    ]
+   }
+  }
+ ]
+}

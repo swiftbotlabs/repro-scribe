@@ -1,0 +1,126 @@
+{
+ "seconds": 67.5,
+ "tool_calls": [
+  {
+   "tool": "capture_environment",
+   "args": {}
+  },
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion doctor --json"
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "openminion doctor json config missing"
+   }
+  }
+ ],
+ "checks": [
+  "ok"
+ ],
+ "session_id": "repro-scribe-writer",
+ "calls": [
+  {
+   "tool": "capture_environment",
+   "args": {},
+   "result": {
+    "python": "3.14.4",
+    "platform": "Linux-7.0.0-43-generic-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "packages": {
+     "openminion": "0.1.23",
+     "pydantic": "2.14.3",
+     "httpx": "0.28.1"
+    }
+   }
+  },
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion doctor --json"
+   },
+   "result": {
+    "command": "openminion doctor --json",
+    "exit_code": 2,
+    "seconds": 1.28,
+    "stdout_tail": "",
+    "stderr_tail": "openminion: config file not found: /tmp/repro-4q1g41t6/home/.openminion/agents.json\n"
+   }
+  },
+  {
+   "tool": "find_existing_issues",
+   "args": {
+    "query": "openminion doctor json config missing"
+   },
+   "result": {
+    "query": "openminion doctor json config missing",
+    "total": 6,
+    "items": [
+     {
+      "number": 573,
+      "title": "cli: first-run missing-config error gives no next step and uses two different exit codes",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/573",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:config",
+       "status:contributor-in-progress"
+      ],
+      "created_at": "2026-11-03"
+     },
+     {
+      "number": 592,
+      "title": "cli: `daemon stop` refuses to stop a reachable daemon when its PID file is missing",
+      "state": "open",
+      "url": "https://github.com/openminion/openminion/issues/592",
+      "labels": [
+       "enhancement",
+       "area:runtime",
+       "status:maintainer-investigation"
+      ],
+      "created_at": "2026-11-04"
+     },
+     {
+      "number": 591,
+      "title": "cli: `status` and `service` resolve a different config file than every other command",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/591",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:config"
+      ],
+      "created_at": "2026-11-04"
+     },
+     {
+      "number": 437,
+      "title": "`APIRuntime` does not start with `storage.backend: postgres`: `runtime record_store does not expose sqlite connection` (`api/core/bootstrap.py:126`)",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/437",
+      "labels": [
+       "bug",
+       "area:runtime",
+       "area:sessions"
+      ],
+      "created_at": "2026-10-26"
+     },
+     {
+      "number": 487,
+      "title": "GET /health on a live runtime leaks a SQLite connection + storage engine per request",
+      "state": "closed",
+      "url": "https://github.com/openminion/openminion/issues/487",
+      "labels": [
+       "bug",
+       "area:runtime"
+      ],
+      "created_at": "2026-10-28"
+     }
+    ]
+   }
+  }
+ ]
+}

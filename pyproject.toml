@@ -1,0 +1,20 @@
+[project]
+name = "repro-scribe"
+version = "0.1.0"
+description = "An OpenMinion agent that turns a failing command into a checked, deduplicated bug report"
+requires-python = ">=3.11"
+dependencies = ["openminion==0.1.23", "pydantic>=2"]
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+repro-scribe = "repro_scribe.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["repro_scribe"]
