@@ -2,6 +2,8 @@
 
 **An OpenMinion agent that turns a failing command into a bug report maintainers can act on, and that checks itself.**
 
+**Demo (91 s):** [docs/repro-scribe-demo.mp4](docs/repro-scribe-demo.mp4), a replay of the real run's trace.
+
 Give it the command that fails and one sentence about what you expected. It:
 1. captures the environment (Python, platform, package versions),
 2. reproduces the failure itself, in a fresh temp directory with an empty OpenMinion home (a clean install), with an allowlist
