@@ -4,7 +4,7 @@ What Repro Scribe uses from the OpenMinion 0.1 Python SDK, how we exercised it, 
 
 | Building block | How Repro Scribe uses it | Result |
 |---|---|---|
-| `Agent(instructions=...)` | investigator persona + step list | works; **long instructions are cut** at the identity budget (F3); ours are kept to 423 characters |
+| `Agent(instructions=...)` | investigator persona + step list | works; **long instructions are cut** at the identity budget without telling the caller (F3, #811, fix PR #812); ours are kept to 423 characters |
 | `@tool` (min_scope READ_ONLY) | `capture_environment`, `reproduce`, `find_existing_issues` | works; the model called all three in order in every run we logged |
 | Tool-calling loop | 3-4 tool calls per run, then a summary | works on Gemini flash-lite; the entry `task_update` sidecar needs `objective` (F2) |
 | `output_type` (pydantic) | `BugReport` from a tool-less writer Agent | works once the schema is in the message; not sent by the SDK itself (F4) |

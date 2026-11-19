@@ -31,12 +31,18 @@ actionable suggestion. We searched the issue tracker for each one (with Repro Sc
 
 - **Repro:** `findings/f3_instructions_truncated.py` (2,159 characters, 40 numbered rules).
 - **Evidence:** only rules 1-16 appear in the provider request; the identity block ends with `...[truncated]`. The cap comes from the
-  context budgets (`identity_tokens` = 160 for `decide`, 180-220 for other purposes). Nothing is logged or raised to the SDK user.
+  context budgets (`identity_tokens` = 160 for `decide`, 180-220 for other purposes). The identity budget owner does record the
+  truncation internally, but the SDK caller is not shown it: no log line, no error, nothing in the run result. The cut-off point is not
+  a fixed character limit: it depends on the turn's purpose, configuration, the other identity sections and the token estimator.
 - **Impact:** output rules placed at the end of the instructions (formats, "never do X") silently stop working. Our first version lost
   its JSON rules this way.
-- **Suggestion:** warn (log + `AgentRunResult.metadata`) when instructions are truncated, document the limit next to `instructions=`,
-  and/or let `Agent(...)` raise the identity budget for SDK-provided instructions.
-- **Related:** none found.
+- **Suggestion:** carry the existing truncation facts through to the caller (run metadata/telemetry, no instruction text in
+  diagnostics), and say in the `instructions=` docs that long instructions share a bounded identity budget. Keep the budget itself
+  owned by the context service: no automatic increase and no silent rewriting.
+- **Status:** reported as openminion#811; a maintainer confirmed the bounded-context path at the component level (2,039 characters
+  in, 655 kept on the `decide` budget, `truncated=True`) and asked for a bounded caller-visibility change. Our fix PR #812 does that:
+  the identity manifest and turn telemetry report that the identity budget truncated, with the cap and the tokens used, and 4 tests
+  (3 of them fail when the change is reverted).
 
 ## F4. `output_type` is validated but never shown to the model; with tools the final text is a closure summary
 
