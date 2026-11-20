@@ -1,0 +1,52 @@
+{
+ "_note": "Recorded GitHub search results (19 Nov 2026) used by --backend loopback so the offline run needs no network.",
+ "issue": [
+  {
+   "number": 573,
+   "title": "cli: first-run missing-config error gives no next step and uses two different exit codes",
+   "state": "open",
+   "url": "https://github.com/openminion/openminion/issues/573",
+   "labels": [
+    "bug",
+    "area:runtime",
+    "area:config",
+    "status:contributor-in-progress"
+   ],
+   "created_at": "2026-11-03"
+  },
+  {
+   "number": 592,
+   "title": "cli: `daemon stop` refuses to stop a reachable daemon when its PID file is missing",
+   "state": "open",
+   "url": "https://github.com/openminion/openminion/issues/592",
+   "labels": [
+    "enhancement",
+    "area:runtime",
+    "status:maintainer-investigation"
+   ],
+   "created_at": "2026-11-04"
+  },
+  {
+   "number": 591,
+   "title": "cli: `status` and `service` resolve a different config file than every other command",
+   "state": "closed",
+   "url": "https://github.com/openminion/openminion/issues/591",
+   "labels": [
+    "bug",
+    "area:runtime",
+    "area:config"
+   ],
+   "created_at": "2026-11-04"
+  }
+ ],
+ "pr": [
+  {
+   "number": 812,
+   "title": "fix(identity): keep agent instructions beyond the identity budget (Refs #811)",
+   "state": "open",
+   "url": "https://github.com/openminion/openminion/pull/812",
+   "labels": [],
+   "created_at": "2026-11-19"
+  }
+ ]
+}

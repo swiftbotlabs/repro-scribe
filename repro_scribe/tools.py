@@ -69,8 +69,12 @@ def environment() -> dict:
             "packages": {p: ver(p) for p in ("openminion", "pydantic", "httpx")}}
 
 
-def search_issues(query: str, limit: int = 5) -> dict:
-    q = f"repo:{REPO} is:issue {query}"
+def search_issues(query: str, limit: int = 5, kind: str = "issue") -> dict:
+    fixture = os.environ.get("REPRO_SCRIBE_SEARCH_FIXTURE")
+    if fixture:  # offline runs (--backend loopback, tests): recorded search results, same shape as the live API
+        data = json.load(open(fixture, encoding="utf-8"))
+        return {"query": query, "total": len(data.get(kind, [])), "items": data.get(kind, [])[:limit], "fixture": True}
+    q = f"repo:{REPO} is:{'pr' if kind == 'pr' else 'issue'} {query}"
     url = "https://api.github.com/search/issues?" + urllib.parse.urlencode({"q": q, "per_page": max(1, min(limit, 10))})
     try:
         data = _http_json(url)
@@ -103,4 +107,45 @@ def find_existing_issues(query: str) -> str:
     """Search the OpenMinion GitHub issues (public API, read-only) for possible duplicates. Use 2-5 distinctive words. Returns JSON."""
     r = search_issues(query)
     CALLS.append({"tool": "find_existing_issues", "args": {"query": query}, "result": r})
+    return json.dumps(r)
+
+
+@tool(min_scope="READ_ONLY", idempotent=True)
+def find_related_prs(query: str) -> str:
+    """Search the OpenMinion GitHub pull requests (public API, read-only) for a fix already in flight. Use 2-5 distinctive words. Returns JSON."""
+    r = search_issues(query, kind="pr")
+    CALLS.append({"tool": "find_related_prs", "args": {"query": query}, "result": r})
+    return json.dumps(r)
+
+
+# The draft the CLI prepared, waiting for a human. save_draft is the only tool that writes, and the OpenMinion action policy asks
+# for confirmation before it runs (a local write whose reversibility is unknown), so nothing is saved without a yes.
+PENDING: dict = {}
+
+
+def write_pending() -> dict:
+    """Plain function behind save_draft, so tests can call it."""
+    if not PENDING:
+        return {"saved": False, "reason": "no draft is waiting"}
+    from pathlib import Path
+    out = Path(PENDING["path"])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(PENDING["markdown"], encoding="utf-8")
+    out.with_suffix(".trace.json").write_text(PENDING["trace"], encoding="utf-8")
+    return {"saved": True, "path": str(out)}
+
+
+@tool(idempotent=False)
+def save_draft(reason: str) -> str:
+    """Save the prepared bug-report draft to disk. Call it exactly once. Needs the user's approval. Returns JSON with the saved path."""
+    r = write_pending()
+    CALLS.append({"tool": "save_draft", "args": {"reason": reason[:200]}, "result": r})
+    return json.dumps(r)
+
+
+@tool(min_scope="READ_ONLY", idempotent=True)
+def record_verdict(lines: str) -> str:
+    """Record your final duplicate verdict, one line per match: "DUP #<number>" or "RELATED #<number>", or "NONE". Call it last, once."""
+    r = {"recorded": True, "lines": lines[:800]}
+    CALLS.append({"tool": "record_verdict", "args": {"lines": lines[:800]}, "result": r})
     return json.dumps(r)
