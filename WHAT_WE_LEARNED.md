@@ -120,6 +120,25 @@ Ask: a 4xx/422-style status (or an error `type` field the SDK can branch on), an
 single server-side retry. On the OpenMinion side, the preset note "requests do not automatically retry" is exactly what the
 gateway's retry + reroute covers.
 
+## F11. A complete live Portal run: it finished, and it showed why the self-check must cover more than duplicates
+
+Second live run (20 Nov 2026, 18:08-19:27 UTC; `examples/portal-run/live2/`), `--backend portal --models gemma4,oss-20b
+--consensus 1 --timeout 3000`, search results from the recorded fixture:
+
+- **It completed end to end**: investigator → duplicate hunter → writer → approval → saved draft, in 61 minutes.
+- **The gateway did the heavy lifting**: 19 model requests, 4,688 s of model time, 13 retried, 9 rerouted to the other alias,
+  9 still failed after 3 attempts (OpenMinion carried on past failed memory-extraction / classifier steps). Attempt errors:
+  17 client timeouts (150 s), 9 × 502 "Model tool arguments do not match the advertised schema", 4 × 502 "Model returned a
+  function that was not advertised", 1 × "Model response did not contain the requested…". 24 Portal request ids are in the ledger.
+- **The model cut corners, and v0.2's self-check let the report through** (`checks: ["ok"]`): the investigator called only
+  `reproduce` (never `capture_environment`), the hunter never called a search tool, and the writer then said "Reproduced here: no"
+  for an exit-2 failure and invented "Python 3.11, OpenMinion 0.3.0" (real: 3.14 / 0.1.23).
+- **Fixed in v0.2.1**: `check()` now also rejects a "not reproduced" claim for a failing command, an environment line without a
+  `capture_environment` call (or with a different openminion version), and "no duplicates" when no search ran. The test
+  `test_check_rejects_the_real_portal_live2_report` replays the real trace of this run (tests/fixtures) and must find all three.
+- **Ask (OpenMinion)**: `forced_tools` forces one tool; a way to require a *set* of tools before the turn may close (here:
+  `reproduce` and `capture_environment`; for the hunter, at least one search) would stop the model closing early.
+
 ## Smaller notes
 
 - `openminion doctor --json` prints plain text and exits 2 when the config is missing; scripts parsing `--json` break (Repro Scribe

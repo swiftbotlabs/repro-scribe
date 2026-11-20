@@ -1,8 +1,8 @@
 # Project Status
 
-- **Project:** `repro-scribe` (`v0.2.0`), MIT
+- **Project:** `repro-scribe` (`v0.2.1`), MIT
 - **OpenMinion SDK:** `0.1.23` (pinned)
-- **Status:** active. 20 offline tests pass (`pytest -q`, no key, no network). Probe 13/13 offline. Real runs on Gemini (19 Nov) and Cortensor Portal (20 Nov).
+- **Status:** active. 22 offline tests pass (`pytest -q`, no key, no network). Probe 13/13 offline. Real runs on Gemini (19 Nov) and Cortensor Portal (20 Nov).
 
 ## Implemented
 - Reproduces a failing command in a fresh temp directory with an empty OpenMinion home (allow-listed programs only, no shell, 60 s timeout).

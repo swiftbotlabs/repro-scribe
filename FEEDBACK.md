@@ -12,6 +12,7 @@ Each item has a repro in [WHAT_WE_LEARNED.md](WHAT_WE_LEARNED.md) or `findings/`
 | F6 | config | connection `base_url` override ignored by `Agent.run`; `providers.openai.base_url` used | new |
 | F7 | Portal + hybrid tool calls | oss-20b reply `Respond(answer=Paris, freshness=Known)` returned as text | new |
 | F10 | Portal | 502 for model-output validation errors ("function not advertised", "tool arguments do not match") | new, request ids listed |
+| F11 | agent loop on Portal | the model closes turns without required tools (no environment capture, no search); a "required tool set" would help | complete live run, 24 request ids |
 
 ## Rough edges
 - F5: 8 model requests for a one-tool turn, 39 for one Repro Scribe run; minutes per turn at Portal latency. A lean-turn switch would help.
@@ -23,6 +24,7 @@ Each item has a repro in [WHAT_WE_LEARNED.md](WHAT_WE_LEARNED.md) or `findings/`
   breaker + request-id ledger) is a reusable answer and could be an SDK option.
 
 ## What worked well
+- One complete live Portal run (61 min, 19 requests): with retries and rerouting, the whole SDK pipeline does finish on Portal.
 - `subagent()` lineage and tool allowlists are explicit and testable (`subagent_context.tool_allowlist`).
 - `approval_callback` is simple and reliable: deny really stops the tool (probe `approval_deny`).
 - `run_stream(on_delta=...)` gives useful phase and tool events with no extra setup.

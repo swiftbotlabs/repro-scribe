@@ -28,8 +28,9 @@ def test_timeout_is_reported_not_raised():
 
 def test_check_accepts_a_consistent_report():
     tools.CALLS[:] = [{"tool": "reproduce", "args": {}, "result": {"exit_code": 3, "stderr_tail": ""}},
+                      {"tool": "capture_environment", "args": {}, "result": {"packages": {"openminion": "0.1.23"}}},
                       {"tool": "find_existing_issues", "args": {}, "result": {"items": [{"number": 7, "url": "u7"}]}}]
-    assert check(_report(possible_duplicates=[PossibleDuplicate(number=7, url="u7", why="same")])) == []
+    assert check(_report(environment="openminion 0.1.23", possible_duplicates=[PossibleDuplicate(number=7, url="u7", why="same")])) == []
 
 
 def test_check_rejects_invented_duplicates_and_wrong_exit_codes():
@@ -48,3 +49,23 @@ def test_markdown_has_the_sections_maintainers_need():
     md = to_markdown(_report(), raw_output="Traceback ...")
     for h in ("### Reproduce", "### Expected", "### Actual", "### Environment", "### Possible duplicates", "Traceback"):
         assert h in md
+
+
+def test_check_rejects_the_real_portal_live2_report():
+    """The live Portal run of 20 Nov: the model skipped capture_environment, the hunter never searched, and the writer said
+    'not reproduced' for an exit-2 failure and invented 'Python 3.11, OpenMinion 0.3.0'. v0.2's check let it through; this one must not."""
+    import json, pathlib
+    trace = json.loads((pathlib.Path(__file__).parent / "fixtures" / "portal-live2.trace.json").read_text())
+    tools.CALLS[:] = trace["calls"]
+    live = _report(reproduced=False, exit_code=2, environment="Operating system: Linux, Python: 3.11, OpenMinion version: 0.3.0")
+    problems = check(live)
+    assert any("not reproduced" in p for p in problems)
+    assert any("never captured" in p for p in problems)
+    assert any("duplicate search never ran" in p for p in problems)
+
+
+def test_check_accepts_a_matching_environment_line():
+    tools.CALLS[:] = [{"tool": "reproduce", "args": {}, "result": {"exit_code": 2, "stderr_tail": ""}},
+                      {"tool": "capture_environment", "args": {}, "result": {"packages": {"openminion": "0.1.23"}}},
+                      {"tool": "find_existing_issues", "args": {}, "result": {"items": []}}]
+    assert check(_report(exit_code=2, environment="Python 3.14, openminion 0.1.23")) == []

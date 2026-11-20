@@ -1,0 +1,39 @@
+{
+ "seconds": 3663.8,
+ "backend": "portal",
+ "tool_calls": [
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion doctor --json"
+   }
+  }
+ ],
+ "checks": [
+  "ok"
+ ],
+ "hunter_verdicts": [
+  {}
+ ],
+ "consensus": {},
+ "handoff_used": false,
+ "signature": "49f5fa54761491ff",
+ "stream_events": 29,
+ "session_id": "repro-scribe-writer",
+ "ledger": "runs/20261120T180827Z-portal.ledger.jsonl",
+ "calls": [
+  {
+   "tool": "reproduce",
+   "args": {
+    "command": "openminion doctor --json"
+   },
+   "result": {
+    "command": "openminion doctor --json",
+    "exit_code": 2,
+    "seconds": 2.22,
+    "stdout_tail": "",
+    "stderr_tail": "openminion: config file not found: /tmp/repro-pyqehff5/home/.openminion/agents.json\n"
+   }
+  }
+ ]
+}

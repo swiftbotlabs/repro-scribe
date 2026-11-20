@@ -12,8 +12,8 @@ Give it the command that fails and one sentence about what you expected. Five Op
 2. one or two **duplicate hunters** (sub-agents, read-only search tools only, one per Portal model) search issues and pull requests
    and record a verdict; a match is a duplicate only when every hunter says so (`--consensus 2`);
 3. a **writer** returns a typed `BugReport` (pydantic);
-4. plain Python **cross-checks the report against what the tools really returned** (failure shown? exit code? every duplicate a real
-   search hit that the hunters confirmed?) and saves an overclaiming report as `*.REJECTED.md`;
+4. plain Python **cross-checks the report against what the tools really returned** (failure shown or not? exit code? environment
+   from the tool, not invented? did a search run? every duplicate a real search hit that the hunters confirmed?) and saves an overclaiming report as `*.REJECTED.md`;
 5. a **publisher** whose only tool writes the draft, so OpenMinion's action policy asks a human first; a **MemoryBundle** of drafts
    answers a repeat of the same command without any model call and flags a new command that fails the same way.
 
@@ -30,7 +30,7 @@ real runs below, Repro Scribe found that all three fresh-install failures were a
 ```bash
 python3.11 -m venv .venv && . .venv/bin/activate
 pip install -e ".[test]"                     # openminion==0.1.23, pydantic, pytest
-pytest -q                                    # 20 offline tests: the full SDK pipeline on the loopback model, gateway, probe
+pytest -q                                    # 22 offline tests: the full SDK pipeline on the loopback model, gateway, probe
 repro-scribe probe --backend loopback        # 13 building blocks, ~10 s, 13/13 PASS
 repro-scribe --backend loopback --consensus 2 --approve yes --command "openminion doctor --json"
 ```
@@ -49,7 +49,9 @@ repro-scribe probe --backend portal --only agent_run,tool_call,output_type
 ```
 
 `--backend portal` writes an OpenMinion home with OpenMinion's own `cortensor-portal` setup preset and points it at the local
-gateway. The ledger lands in `runs/<time>-portal.ledger.jsonl`; `examples/portal-run/` has the one from our live run (20 Nov 2026).
+gateway. The ledger lands in `runs/<time>-portal.ledger.jsonl`. `examples/portal-run/live2/` is our complete live run (20 Nov 2026:
+61 min, 19 Portal requests, 13 retried, 9 rerouted, report saved): it also showed the model skipping tools, which the self-check now
+rejects (WHAT_WE_LEARNED.md F11). Plan for minutes per agent turn on Portal today.
 
 ## SDK feature → where it is used
 

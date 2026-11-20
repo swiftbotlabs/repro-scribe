@@ -55,6 +55,17 @@ def check(report: BugReport) -> list[str]:
             problems.append("report says reproduced, but the command succeeded")
         if report.exit_code is not None and last.get("exit_code") is not None and report.exit_code != last["exit_code"]:
             problems.append(f"exit code {report.exit_code} in the report, {last['exit_code']} from the tool")
+        if not report.reproduced and last.get("exit_code") not in (0, None):
+            problems.append(f"report says not reproduced, but the command failed with exit code {last['exit_code']}")
+    envs = [c["result"] for c in CALLS if c["tool"] == "capture_environment"]
+    if not envs:
+        problems.append("environment was never captured, so the report's environment line is the model's guess")
+    else:
+        want = str(envs[-1].get("packages", {}).get("openminion", ""))
+        if want and want not in report.environment:
+            problems.append(f"environment says something other than openminion {want} (from capture_environment)")
+    if not any(c["tool"] in ("find_existing_issues", "find_related_prs") for c in CALLS):
+        problems.append("the duplicate search never ran, so 'no duplicates' is unverified")
     seen = {i["number"]: i["url"] for c in CALLS if c["tool"] in ("find_existing_issues", "find_related_prs")
             for i in c["result"].get("items", [])}
     for d in report.possible_duplicates:
@@ -278,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
                  "tool_calls": [{"tool": c["tool"], "args": c["args"]} for c in CALLS], "checks": problems or ["ok"],
                  "hunter_verdicts": [{str(k): v for k, v in v_.items()} for v_ in verdicts],
                  "consensus": {str(k): v for k, v in verdict.items()}, "handoff_used": bool(handed), "signature": sig,
-                 "stream_events": len(progress.events), "session_id": result.session_id}
+                 "stream_events": len(progress.events), "session_id": result.session_id, "report": report.model_dump()}
         if gw is not None:
             trace["ledger"] = ledger
         PENDING.update(path=str(out), title=report.title, markdown=md + "\n<!-- repro-scribe trace: " + json.dumps(trace) + " -->\n",

@@ -1,6 +1,6 @@
 [project]
 name = "repro-scribe"
-version = "0.2.0"
+version = "0.2.1"
 description = "An OpenMinion agent that turns a failing command into a checked, deduplicated bug report"
 requires-python = ">=3.11"
 dependencies = ["openminion==0.1.23", "pydantic>=2"]

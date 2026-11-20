@@ -1,5 +1,10 @@
 # Release Notes
 
+## v0.2.1 - 2026-11-20
+- Self-check also rejects: "not reproduced" for a failing command, an environment line not from `capture_environment`, and
+  "no duplicates" without a search. Found by our first complete live Portal run (F11); its real trace is a regression test.
+- examples/portal-run/live2: the complete live run (report + ledger, 24 Portal request ids). Tests 22/22 offline.
+
 ## v0.2.0 - 2026-11-20
 - Cortensor Portal backend through a local gateway (`gateway.py`): alias routing, retries/backoff, circuit breaker, JSONL ledger with
   Portal request ids; offline loopback model so the full pipeline runs with no key.
