@@ -55,6 +55,63 @@ actionable suggestion. We searched the issue tracker for each one (with Repro Sc
   answer instruction when `output_type` is set.
 - **Related:** #720 (closure judge can replace a valid output_type answer), #803.
 
+## F5. One short tool turn is 8 model requests; a 4-agent pipeline is ~40, which is minutes on Portal
+
+- **What we saw:** the gateway ledger counts every request. A one-tool turn (`probe_lookup` then answer) made 8 requests: memory
+  extraction, 3 tool-loop steps, freshness classifier, a "blocking_reason/remaining_work/status" step, the completion critic and a
+  final-answer step (`AgentRunResult.stats["llm_calls"]` agrees: 8). One Repro Scribe run with two hunters made 39.
+- **Why it matters on Portal:** a tiny direct Portal call took 18-22 s (20 Nov). At that latency an 8-request turn is 3-4 minutes
+  before any retry, so a plain `Agent.run("Capital of France?")` on Portal oss-20b took 272 s for us.
+- **Ask:** a documented "lean turn" switch (skip memory extraction / freshness / critic for tool-less or structured-output agents),
+  and per-step counts in `stats`. Repro: `repro-scribe probe --backend loopback --json` (column `model_requests`).
+
+## F6. Editing a model connection's `base_url` does not change where `Agent(...)` sends requests
+
+- `openminion setup --provider cortensor-portal` writes the endpoint twice: `agents.<id>.model_connections.<conn>.provider_config_overrides.base_url`
+  and `providers.openai.base_url`. We pointed only the connection at a local gateway; SDK `Agent.run()` still went to
+  `https://api.cortensor.app/v1` (Portal answered 401 for our placeholder key, with a `gw-…` request id). Pointing
+  `providers.openai.base_url` at the gateway worked. Expected: the connection override applies, or setup writes one place.
+  (Repro Scribe's `gateway.write_home` patches both; see the comment there.)
+
+## F7. oss-20b on Portal: the reply can be a text pseudo-call, returned to the caller as the answer
+
+- `Agent(instructions="Answer in one word.", model="oss-20b").run("Capital of France?")` through the `cortensor-portal` preset
+  returned `'openminion: Respond(answer=Paris, freshness=Known)'` after 272 s (`stats`: 1 LLM call). The model wrote OpenMinion's
+  `respond` tool call as plain text; the hybrid tool-call parser did not pick it up, so the raw text became the reply.
+  Ask: parse `Name(key=value, …)` text calls for the internal `respond` tool, or retry with `tool_choice` forced.
+
+## F8. A `Handoff` is classed as a local write of unknown reversibility, so it needs approval
+
+- Without an `approval_callback`, `Agent(handoffs=[Handoff(target=peer)]).run(...)` ends with the reply
+  `Policy confirmation required. transfer_to_peer · Risk: write · Side effects: local · Reversibility: UNKNOWN_REVERSIBILITY`, and the
+  peer never runs. With a callback that returns True it works (probe `handoff`). A delegation to a peer agent is not a write; at
+  least `Handoff` could carry its own risk class, or the docs could say a callback is required. Repro: `repro-scribe probe --only handoff`
+  (it passes because the probe supplies the callback; remove it in `check_handoff` to see the policy reply).
+
+## F9. Replies start with the agent id
+
+- `AgentRunResult.text` is `"openminion: ok"`, not `"ok"`. Every caller that shows or parses the text has to strip the prefix
+  (`cli.speech`). Expected: the prefix only on console surfaces, or a documented field without it.
+
+## F10. Cortensor Portal answers 502 when the model returns a function the request did not offer, or wrong tool arguments
+
+From our live run (20 Nov 2026, 17:53-18:01 UTC, `examples/portal-run/`), on OpenMinion's forced structured step (`tool_choice`
+= `submit_output`, memory extraction) and on a tool-loop step:
+
+| Step | Alias | Status | Portal message | Request id |
+|---|---|---|---|---|
+| memory extraction | oss-20b | 502 | Model returned a function that was not advertised in this request | gw-5faa3e1f-21ca-4d2c-ac3f-5b1b00f21b41 |
+| memory extraction | gemma4 | 502 | same | gw-967b3cda-3319-4433-8191-ef78b5a444f6 |
+| memory extraction | oss-20b | 502 | same | gw-1867fffe-b067-40b6-8322-fd1531bf5f8e |
+| tool loop | gemma4 | (none) | client read timeout after 150 s | - |
+| tool loop | oss-20b | 502 | Model tool arguments do not match the advertised schema | gw-fe6ad957-4d8a-4dec-a649-73381ac2b2da |
+| tool loop | gemma4 | 200 | rerouted by the gateway; the turn went on | gw-7c161f6e-4905-4c59-a797-6be26794d29e |
+
+A 502 tells a client to retry, but these are model-output validation errors: a retry on the same alias usually fails the same way.
+Ask: a 4xx/422-style status (or an error `type` field the SDK can branch on), and for forced `tool_choice`, constrained decoding or a
+single server-side retry. On the OpenMinion side, the preset note "requests do not automatically retry" is exactly what the
+gateway's retry + reroute covers.
+
 ## Smaller notes
 
 - `openminion doctor --json` prints plain text and exits 2 when the config is missing; scripts parsing `--json` break (Repro Scribe

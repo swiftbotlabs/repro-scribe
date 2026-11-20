@@ -2,35 +2,82 @@
 
 **An OpenMinion agent that turns a failing command into a bug report maintainers can act on, and that checks itself.**
 
-**Demo (91 s):** [docs/repro-scribe-demo.mp4](docs/repro-scribe-demo.mp4), a replay of the real run's trace.
+**Demo (2:32, narrated):** [docs/repro-scribe-demo.mp4](docs/repro-scribe-demo.mp4). The pipeline, a live Cortensor Portal run (real
+gateway ledger with Portal request ids), the 13-check probe, and the findings.
 
-Give it the command that fails and one sentence about what you expected. It:
-1. captures the environment (Python, platform, package versions),
-2. reproduces the failure itself, in a fresh temp directory with an empty OpenMinion home (a clean install), with an allowlist
-   (only `openminion` or `python`, no shell, 60 s),
-3. searches the project's existing issues for duplicates (public GitHub API),
-4. writes a structured report (pydantic `BugReport` → Markdown) with the exact output, and
-5. **cross-checks the report against what its tools really returned**: if the model claims a failure the command did not show, or
-   lists a "duplicate" the search never returned, the report is saved as `*.REJECTED.md` instead.
+Give it the command that fails and one sentence about what you expected. Five OpenMinion agents work in turn:
+1. an **investigator** captures the environment and reproduces the failure itself, in a fresh temp directory with an empty
+   OpenMinion home (a clean install), with an allowlist (only `openminion` or `python`, no shell, 60 s). Its progress streams live.
+   If the command does *not* fail, it hands the case to a **needs-info** peer that writes the questions to ask the reporter;
+2. one or two **duplicate hunters** (sub-agents, read-only search tools only, one per Portal model) search issues and pull requests
+   and record a verdict; a match is a duplicate only when every hunter says so (`--consensus 2`);
+3. a **writer** returns a typed `BugReport` (pydantic);
+4. plain Python **cross-checks the report against what the tools really returned** (failure shown? exit code? every duplicate a real
+   search hit that the hunters confirmed?) and saves an overclaiming report as `*.REJECTED.md`;
+5. a **publisher** whose only tool writes the draft, so OpenMinion's action policy asks a human first; a **MemoryBundle** of drafts
+   answers a repeat of the same command without any model call and flags a new command that fails the same way.
+
+Every model request goes through a small **gateway** in front of Cortensor Portal (`repro_scribe/gateway.py`): alias routing
+(gemma4 / oss-20b), retries with backoff on 429/5xx/timeouts, a circuit breaker that rests a failing alias, and a JSONL ledger of
+every request with the Portal `x-request-id` of every attempt (never message text or headers). The same gateway has an offline
+**loopback** mode, a scripted model, so the whole SDK pipeline runs with no key and no network.
 
 Why: the Cortensor hackathon wants reproducible bug reports for OpenMinion, and the cheapest bad report is a duplicate. In our three
 real runs below, Repro Scribe found that all three fresh-install failures were already covered by open issue #573, so nobody files them twice.
 
-## Run it
+## Try it offline in one minute (no key, no network)
 
 ```bash
 python3.11 -m venv .venv && . .venv/bin/activate
 pip install -e ".[test]"                     # openminion==0.1.23, pydantic, pytest
-pytest -q                                    # 7 offline tests: tools + the self-check, no model, no network
+pytest -q                                    # 20 offline tests: the full SDK pipeline on the loopback model, gateway, probe
+repro-scribe probe --backend loopback        # 13 building blocks, ~10 s, 13/13 PASS
+repro-scribe --backend loopback --consensus 2 --approve yes --command "openminion doctor --json"
+```
 
+Loopback answers like a model (it calls each offered tool once, fills OpenMinion's internal structured steps from their schemas,
+writes the BugReport only from the evidence in its message) and reads GitHub search results from a recorded fixture
+(`repro_scribe/fixtures/search.json`). It proves the wiring, not model quality: use Portal or your own provider for that.
+
+## Run it on Cortensor Portal
+
+```bash
+export CORTENSOR_API_KEY=ctp_...             # free key: portal.cortensor.network
+repro-scribe --backend portal --models oss-20b,gemma4 --consensus 2 --timeout 900 \
+  --command "openminion doctor --json" --note "With --json I expect JSON on stdout even when the config is missing."
+repro-scribe probe --backend portal --only agent_run,tool_call,output_type
+```
+
+`--backend portal` writes an OpenMinion home with OpenMinion's own `cortensor-portal` setup preset and points it at the local
+gateway. The ledger lands in `runs/<time>-portal.ledger.jsonl`; `examples/portal-run/` has the one from our live run (20 Nov 2026).
+
+## SDK feature → where it is used
+
+| Feature | OpenMinion SDK call | Where in Repro Scribe | Checked by |
+|---|---|---|---|
+| Agent turns | `Agent(instructions, model, name, session_id).run()` | all five agents (`cli.py`) | probe `agent_run`, pipeline tests |
+| Tools | `@tool(min_scope="READ_ONLY", idempotent=...)` | `reproduce`, `capture_environment`, `find_existing_issues`, `find_related_prs`, `record_verdict` | probe `tool_call`, `test_offline.py` |
+| Forced tool | `Agent(forced_tools=["reproduce"])` | investigator always reproduces first | probe `forced_tools`; pipeline test asserts the first call |
+| Streaming progress | `Agent.run_stream(on_delta=...)` | live `[investigator +5.0s] tool_started reproduce` lines | probe `run_stream` |
+| Sub-agents | `subagent(parent, tools=[...], model=..., timeout_seconds=...)` | 1-3 duplicate hunters with read-only tools, own sessions | probe `subagent` (lineage + allowlist), pipeline test |
+| Handoff | `Handoff(target=peer, name="transfer_to_needs_info")` | not-reproduced cases go to the needs-info peer | probe `handoff`, `test_a_failure_that_does_not_reproduce…` |
+| Human approval | `run(approval_callback=...)`, action policy `require_confirm` | publisher's `save_draft` (`--approve ask/yes/no`); handoff auto-allowed by name only | probes `approval_deny` / `approval_allow`, `test_a_human_no…` |
+| Typed output | `Agent(output_type=BugReport)`, `AgentOutputValidationError` | writer | probe `output_type` |
+| Sessions | `session_id`, `AgentRunResult.session_id/run_id` | investigator session shared across runs; hunters get a fresh one per run | probe `sessions` |
+| Memory | `MemoryBundle`, `export_bundle/save_bundle/load_bundle` | cross-run dedup: same command → no model call; same failure signature → flagged | probe `memory_bundle`, `test_memory_answers…` |
+| Errors | `ProviderError`, `TurnTimeoutError` | exit codes 1 / 4; gateway request id surfaces in the message | probe `provider_error` |
+| Providers / Portal | `openminion setup --provider cortensor-portal`, `Agent(model="gemma4"/"oss-20b")` | gateway backend, per-hunter model for consensus | probe `gateway_failover`, live run |
+
+## Run it with your own OpenMinion provider
+
+```bash
 export GEMINI_API_KEY=...                    # free tier is enough
 openminion setup --provider gemini --model gemini-flash-lite-latest --no-chat
 repro-scribe --command "openminion doctor --json" --note "With --json I expect JSON on stdout even when the config is missing."
-# -> reports/<title>.md, plus <title>.trace.json with every tool call and the self-check result
+# -> reports/<title>.md, plus <title>.trace.json with every tool call, approvals, hunter verdicts and the self-check result
 ```
 
-Any OpenMinion provider works (`--agent <profile>` to pick one). Exit codes: 0 report accepted, 3 report rejected by the self-check,
-2 model output did not fit the schema, 1 provider error, 4 turn timeout.
+Any OpenMinion provider works (`--backend config`, the default; `--agent <profile>` to pick one).
 
 ## Real runs (Gemini free tier, 19 Nov 2026)
 
@@ -42,18 +89,18 @@ Any OpenMinion provider works (`--agent <profile>` to pick one). Exit codes: 0 r
 
 Each report has a `.trace.json` next to it: tool calls in order, their full results, the self-check verdict and the timing.
 
-## How it is built (OpenMinion SDK)
+## Exit codes
 
-- **Investigator**: `Agent(instructions=..., tools=[capture_environment, reproduce, find_existing_issues], session_id=...)`; the model
-  decides the calls; every call is recorded for the self-check.
-- **Writer**: a tool-less `Agent(output_type=BugReport)` that gets the schema and the tool results and returns the report.
-- **Self-check** (`cli.check`): deterministic Python comparing the report with the recorded tool results.
-- See [BUILDING_BLOCKS_TESTED.md](BUILDING_BLOCKS_TESTED.md) for what each SDK piece did, and
-  [WHAT_WE_LEARNED.md](WHAT_WE_LEARNED.md) for four SDK findings with repros (`findings/`).
+0 report accepted and saved, 3 report rejected by the self-check, 2 model output did not fit the schema, 1 provider error,
+4 turn timeout, 5 already drafted (memory, no model call), 6 not saved (the human said no, or the publisher failed).
+
+See [BUILDING_BLOCKS_TESTED.md](BUILDING_BLOCKS_TESTED.md) for what each SDK piece did and [WHAT_WE_LEARNED.md](WHAT_WE_LEARNED.md)
+/ [FEEDBACK.md](FEEDBACK.md) for ten findings with repros.
 
 ## Safety
 
 `reproduce` never runs a shell, never runs anything but `openminion`/`python`, works in a throwaway directory and a throwaway
-OpenMinion home, and times out after 60 s. The issue search is read-only and unauthenticated. Reports are drafts: filing is a human step.
+OpenMinion home, and times out after 60 s. The issue search is read-only and unauthenticated. Reports are drafts: saving needs a human yes, filing is a human step. The gateway
+listens on 127.0.0.1 only and its ledger stores request shapes and ids, never prompts, replies or keys.
 
 License: MIT.
