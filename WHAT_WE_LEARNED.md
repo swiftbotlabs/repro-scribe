@@ -106,6 +106,14 @@ From our live run (20 Nov 2026, 17:53-18:01 UTC, `examples/portal-run/`), on Ope
 | tool loop | gemma4 | (none) | client read timeout after 150 s | - |
 | tool loop | oss-20b | 502 | Model tool arguments do not match the advertised schema | gw-fe6ad957-4d8a-4dec-a649-73381ac2b2da |
 | tool loop | gemma4 | 200 | rerouted by the gateway; the turn went on | gw-7c161f6e-4905-4c59-a797-6be26794d29e |
+| freshness classifier | gemma4 | 502 | Model tool arguments do not match the advertised schema | gw-c6fde689-4911-468e-8cd0-84fcc51eef6c |
+| freshness classifier | oss-20b | 502 | same | gw-1497727a-2f22-4ba3-81ec-a0341acd6857 |
+| freshness classifier | gemma4 | 500 | Router V4 request failed before model completion (`router_v4_internal_error`) | gw-43bc06fe-c290-4e14-bb21-b76d93ea03b2 |
+| tool loop | gemma4 | 200 | first try | gw-5a04849c… |
+
+Outcome, stated plainly: the investigator ran its tools (reproduce + environment), but its turn hit our 900 s turn limit after 4
+model requests took 823 s in total, so this live run did not reach the writer. On Portal today a full 4-agent run (~40 requests)
+does not fit any sensible timeout; this is why the offline loopback backend exists and why F5 matters.
 
 A 502 tells a client to retry, but these are model-output validation errors: a retry on the same alias usually fails the same way.
 Ask: a 4xx/422-style status (or an error `type` field the SDK can branch on), and for forced `tool_choice`, constrained decoding or a
