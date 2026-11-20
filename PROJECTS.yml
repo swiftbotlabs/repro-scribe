@@ -1,0 +1,8 @@
+- name: repro-scribe
+  category: apps
+  owner: "@swiftbotlabs"
+  collaborators: []
+  status: active
+  created: 2026-11-19
+  version: v0.1.0
+  tags: [python, openminion, cortensor, bug-reports, qa, agent]
